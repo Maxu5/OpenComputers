@@ -1,7 +1,5 @@
 
--- Copyright (c) https://github.com/Maxu5/
-
--------------------------------------------------------------------------------------
+-- Copyright © https://github.com/Maxu5/
 
 local screen = require("Screen")
 
@@ -34,16 +32,14 @@ local starAmount, colors, braille =
 local screenWidth, screenHeight = screen.getResolution()
 -- Obtaining screen buffer tables for changing data ASAP
 local newFrameBackgrounds, newFrameForegrounds, newFrameSymbols = screen.getNewFrameTables()
+local screenTablesSize = #newFrameBackgrounds
 
 -- Faster access without tables indexing
-local computerPullSignal, tableInsert, tableRemove, mathSin, mathCos, mathFloor, mathCeil, mathRandom, screenDrawRectangle, screenSet, screenUpdate, screenGetIndex =
+local computerPullSignal, tableRemove, mathSin, mathCos, mathRandom, screenDrawRectangle, screenSet, screenUpdate, screenGetIndex =
 	computer.pullSignal,
-	table.insert,
 	table.remove,
 	math.sin,
 	math.cos,
-	math.floor,
-	math.ceil,
 	math.random,
 	screen.drawRectangle,
 	screen.set,
@@ -51,30 +47,37 @@ local computerPullSignal, tableInsert, tableRemove, mathSin, mathCos, mathFloor,
 	screen.getIndex
 
 -- Other variables, nil by default
-local stars, i, star, rotationAngle, targetX, targetY, startWay, x, y, xmod, ymod, prevX, prevY, signalType, screenIndex = {}
+local stars, i, star, rotationAngle, targetX, targetY, startWay, x, y, xmod, ymod, prevX, prevY, signalType, screenIndex, color = {}
 
+-- Clearing backgrounds table once
+for i = 1, screenTablesSize do
+	newFrameBackgrounds[i] = 0x0
+end
+
+-- Main loop
 while true do
 	-- Spawing stars
 	while #stars < starAmount do
 		rotationAngle = mathRandom(6265) / 1000
+		
 		targetX, targetY, startWay =
-			mathCeil(mathCos(rotationAngle) * screenWidth * 0.75 + screenWidth / 2),
-			mathCeil(mathSin(rotationAngle) * screenWidth * 0.375 + screenHeight / 2),
+			mathCos(rotationAngle) * screenWidth * 0.75 + screenWidth / 2,
+			mathSin(rotationAngle) * screenWidth * 0.375 + screenHeight / 2,
 			mathRandom()
 
-		tableInsert(stars, {
+		stars[#stars + 1] = {
 			targetX = targetX,
 			targetY = targetY,
-			startX = mathCeil((targetX - screenWidth / 2) * startWay + screenWidth / 2),
-			startY = mathCeil((targetY - screenHeight / 2) * startWay + screenHeight / 2),
+			startX = (targetX - screenWidth / 2) * startWay + screenWidth / 2,
+			startY = (targetY - screenHeight / 2) * startWay + screenHeight / 2,
 			way = 0.01,
 			speed = mathRandom(25, 75) / 1000 + 1,
-		})
+		}
 	end
 
-	-- Clearing screen buffer in raw table mode
-	for i = 1, #newFrameBackgrounds do
-		newFrameBackgrounds[i], newFrameForegrounds[i], newFrameSymbols[i] = 0x0, 0x0, " "
+	-- Clearing foregrounds and symbols tables
+	for i = 1, screenTablesSize do
+		newFrameForegrounds[i], newFrameSymbols[i] = 0x0, " "
 	end
 
 	-- Drawing stars
@@ -89,12 +92,21 @@ while true do
 		if x > screenWidth or x < 1 or y > screenHeight or y < 1 then
 			tableRemove(stars, i)
 		else
-			screenIndex, xmod, ymod =
-				screenGetIndex(mathFloor(x), mathFloor(y)),
-				mathFloor(x * 2) % 2,
-				mathFloor(y * 4) % 4
-			
-			newFrameForegrounds[screenIndex] = colors[mathFloor(star.way * 4.0156862745098 * #colors)] or 0xFFFFFF
+			-- Star type
+			xmod = x * 2
+			xmod = (xmod - xmod % 1) % 2
+
+			ymod = y * 4
+			ymod = (ymod - ymod % 1) % 4
+
+			-- Star color
+			color = star.way * 4.0156862745098 * #colors
+
+			-- Star screen position
+			-- screenIndex = screenGetIndex(x - x % 1, y - y % 1)
+			screenIndex = screenWidth * (y - y % 1 - 1) + x - x % 1
+
+			newFrameForegrounds[screenIndex] = colors[color - color % 1] or 0xFFFFFF
 
 			if star.way < 0.3 then
 				if xmod == 0 then
@@ -132,8 +144,10 @@ while true do
 		end
 	end
 
+	-- Drawing changes on monitor
 	screenUpdate()
 
+	-- Waiting for some signals
 	signalType = computerPullSignal(0)
 	if signalType == "touch" or signalType == "key_down" then
 		break
