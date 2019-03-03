@@ -1,5 +1,5 @@
 PALETTE = {
-	0x000000, 0x000040, 0x000080, 0x0000BF, 0x0000FF, 0x002400, 0x002440, 0x002480, 
+    0x000000, 0x000040, 0x000080, 0x0000BF, 0x0000FF, 0x002400, 0x002440, 0x002480, 
     0x0024BF, 0x0024FF, 0x004900, 0x004940, 0x004980, 0x0049BF, 0x0049FF, 0x006D00, 
     0x006D40, 0x006D80, 0x006DBF, 0x006DFF, 0x009200, 0x009240, 0x009280, 0x0092BF, 
     0x0092FF, 0x00B600, 0x00B640, 0x00B680, 0x00B6BF, 0x00B6FF, 0x00DB00, 0x00DB40, 
@@ -34,45 +34,45 @@ PALETTE = {
 }
 
 PP_GRAY = {
-	0, 40, 41, 42, 83, 84, 85, 126, 127, 128, 129, 170, 171, 172, 213, 214, 215, 255
+    0, 40, 41, 42, 83, 84, 85, 126, 127, 128, 129, 170, 171, 172, 213, 214, 215, 255
 }
 
 PP_RED = {
-	0, 43, 86, 130, 173, 216
+    0, 43, 86, 130, 173, 216
 }
 ----------------------------------------------------------
 local closestIndex, delta, deltaR1, deltaG1, deltaB1, deltaR2, deltaG2, deltaB2, R8, G8, B8, Gr8, R, G, B, index1, index2, temp
 ----------------------------------------------------------
 local function fast(color)
-	R, G, B = color // 0x10000, color // 0x100 % 0x100, color % 0x100
-	Gr8 = (R + G + B + 22.5) // 45 + 1
-	R8 = (R + 25.5) // 51 + 1
-	G8 = (G + 17.9) // 36.4285
-	B8 = (B + 31.4) // 63.75 + 1
-	index1 = PP_GRAY[Gr8] + 1
-	index2 = PP_RED[R8] + 5 * G8 + B8
-	--Необязательное условие (нужно в случае необходимости полного соответствия с slow функцией){
-	if index1 < index2 then
-		temp = index2
-		index2 = index1
-		index1 = temp
-	end
-	--}
-	deltaR1 = PALETTE[index1] // 0x10000 - R
+    R, G, B = color // 0x10000, color // 0x100 % 0x100, color % 0x100
+    Gr8 = (R + G + B + 22.5) // 45 + 1
+    R8 = (R + 25.5) // 51 + 1
+    G8 = (G + 17.9) // 36.4285
+    B8 = (B + 31.4) // 63.75 + 1
+    index1 = PP_GRAY[Gr8] + 1
+    index2 = PP_RED[R8] + 5 * G8 + B8
+    --Необязательное условие (нужно в случае необходимости полного соответствия с slow функцией){
+    if index1 < index2 then
+        temp = index2
+        index2 = index1
+        index1 = temp
+    end
+    --}
+    deltaR1 = PALETTE[index1] // 0x10000 - R
     deltaG1 = PALETTE[index1] // 0x100 % 0x100 - G
     deltaB1 = PALETTE[index1] % 0x100 - B
     delta = deltaR1 * deltaR1 + deltaG1 * deltaG1 + deltaB1 * deltaB1
     deltaR2 = PALETTE[index2] // 0x10000 - R
-	deltaG2 = PALETTE[index2] // 0x100 % 0x100 - G
-	deltaB2 = PALETTE[index2] % 0x100 - B
-	if delta < deltaR2 * deltaR2 + deltaG2 * deltaG2 + deltaB2 * deltaB2 then
-		return index1 - 1
-	else
-		return index2 - 1
-	end
+    deltaG2 = PALETTE[index2] // 0x100 % 0x100 - G
+    deltaB2 = PALETTE[index2] % 0x100 - B
+    if delta < deltaR2 * deltaR2 + deltaG2 * deltaG2 + deltaB2 * deltaB2 then
+        return index1 - 1
+    else
+        return index2 - 1
+    end
 end
 local function slow(color)
-	R, G, B = color // 0x10000, color // 0x100 % 0x100, color % 0x100
+    R, G, B = color // 0x10000, color // 0x100 % 0x100, color % 0x100
     closestIndex = 1
     closestDelta = 1234567
     for i = 1, #PALETTE do
@@ -92,27 +92,27 @@ end
 --[[Проверка на соответствие двух функций
 local i, ans
 for i = 0, 5000 do
-	color = math.random(16777215)
-	ans = slow(color)
-	if ans ~= fast(color) then
-		io.write(string.format("%x", PALETTE[ans + 1]) .. ":" .. 
-			string.format("%x", PALETTE[fast(color) + 1]) .. ":" .. 
-			string.format("%x", color).. "    ")
-	end
-	if i % 1000 == 0 then
-		os.sleep(0)	
-	end
+    color = math.random(16777215)
+    ans = slow(color)
+    if ans ~= fast(color) then
+        io.write(string.format("%x", PALETTE[ans + 1]) .. ":" .. 
+            string.format("%x", PALETTE[fast(color) + 1]) .. ":" .. 
+            string.format("%x", color).. "    ")
+    end
+    if i % 1000 == 0 then
+        os.sleep(0) 
+    end
 end
-os.sleep(0)	]]
+os.sleep(0) ]]
 local prev = os.clock()
 for i = 1, 1000 do
-	slow(i)
+    slow(i)
 end
 print("Медленная фунеция выполняется за: " .. (os.clock() - prev) .. " миллисекунд")
 os.sleep(0)
 
 prev = os.clock()
 for i = 1, 1000 do
-	fast(i)
+    fast(i)
 end
 print("Быстрая фунеция выполняется за: " .. (os.clock() - prev) .. " миллисекунд")
